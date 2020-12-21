@@ -8,6 +8,11 @@ const userSchema = new mongoose.Schema({
       match : [/.*@..*/, "email must contain @ and ."],
       required: [true, "Email is required"],
     },
+    role :{
+      type: String,
+      enum: ["admin", "vendor"],
+      required: true,
+    },
     password: {
       type: String,
       minlength: [4, "Password length should be above 4"],

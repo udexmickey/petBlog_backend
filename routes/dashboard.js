@@ -3,27 +3,38 @@ const router     = express.Router();
 const User = require("../models/user");
 const Pet = require("../models/pet");
 const Petpost = require("../models/petpost");
+const authenthcateJWT = require("../authenthcate")
+//===========================================================
+//Evironment Variable 
+//===========================================================
+// (app.get("env") === "development")
+
 
 //=========================================================================================
 // THe Pet route endpoint for fetching all pet and returning back json()
 //==========================================================================================
 
-router.get("/", (req, res) => {
+router.get("/", authenthcateJWT, (req, res) => {
   Pet.find({}, (err, pet) =>{
-    if(err) return res.status(404).json({message : "Error!!! Can't get all pets"})
-    return res.status(200).json(pet)
-  })
+    if(!pet) return res.status(404).json({message : "Error!!! Can't get all pets"})
+    res.status(200).json(pet)
+  }) 
 })
 
-router.post("/", async (req, res) => {
+router.post("/", authenthcateJWT, async (req, res) => {
   const animal = await req.body.animal;
+  const { role } = req.user;
+  if (role !== 'admin') return res.status(403).json("Only admin can post pets");
+  
   Pet.create({ animal : animal}, (err, pet) => {
-      try { return res.status(200).json(pet); }
+      try { 
+        return res.status(200).json(pet); 
+      }
       catch (ex) { return res.status(400).json({ message: "Can't save Pet" }); }
     })
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", authenthcateJWT, async (req, res) => {
     const petID = req.params.id;
     Pet.findById(petID).populate("petposts").exec((err, pet) => {
       if (pet) {
@@ -34,17 +45,25 @@ router.get("/:id", async (req, res) => {
     });
   })
 
-router.put("/:id", async (req, res)=>{
+router.put("/:id", authenthcateJWT, async (req, res)=>{
   const petID = req.params.id;
   const animal = await req.body.animal;
+
+  const { role } = req.user;
+  if (role !== 'admin') return res.status(403).json("Only admin can update/change pets");
+
   Pet.findByIdAndUpdate({_id : petID}, { animal : animal}, {new : true}, (err, pet)=>{
     try {return res.status(200).json(pet) }
-    catch (e) { return res.status(404).json({message : `An Error occurred during update put method`}) }
+    catch (e) { return res.status(404).json({message : `An Error occurred during update/change put method`}) }
   })
 })
 
-router.delete("/:id", async (req, res)=>{
+router.delete("/:id", authenthcateJWT, async (req, res)=>{
   const petID = req.params.id;
+
+  const { role } = req.user;
+  if (role !== 'admin') return res.status(403).json("Only admin can delete pets");
+
   Pet.findByIdAndRemove({_id : petID}, (err, pet)=>{
     try {return res.status(200).json({message : `This pet has been deleted `, pet}) }
     catch (e) { return res.status(404).json({message : `An Error occurred during delete method`}) }
